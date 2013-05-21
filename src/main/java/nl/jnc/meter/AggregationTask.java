@@ -21,23 +21,21 @@ public class AggregationTask implements Runnable {
     private final String ABSOLUTE_VALUE_KEY = "absoluteValue";
 
     private AppConfig appConfig;
-    private DBCollection relativeCollection, absoluteCollection;
-    private DBObject groupOp, projectOp;
+    private DBCollection relativeCollection, tempCollection;
+    private String absoluteCollectionName;
+    private DBObject groupOp;
 
     public AggregationTask(AppConfig appConfig) throws UnknownHostException {
         this.appConfig = appConfig;
         MongoClient mongoClient = new MongoClient();
         DB db = mongoClient.getDB(appConfig.getDbName());
         this.relativeCollection = db.getCollection(appConfig.getRelativeCollectionName());
-        this.absoluteCollection = db.getCollection(appConfig.getAbsoluteCollectionName());
+        this.absoluteCollectionName = appConfig.getAbsoluteCollectionName();
+        this.tempCollection = db.getCollection("tempAbsolute");
         this.groupOp = new BasicDBObject("$group",
                 new BasicDBObject("_id", "$" + MeterData.DEVICE_ID_KEY)
                         .append(ABSOLUTE_VALUE_KEY, new BasicDBObject("$sum", "$" + MeterData.DELTA_KEY))
         );
-        this.projectOp = new BasicDBObject("$project",
-                new BasicDBObject(ABSOLUTE_VALUE_KEY, 1)
-                        .append(MeterData.DEVICE_ID_KEY, "$_id")
-                        .append("_id", 0));
     }
 
     @Override
@@ -59,7 +57,7 @@ public class AggregationTask implements Runnable {
                 double insertTime = (endInsertTime - endAggregateTime) / oneBillion;
                 double allTime = (endInsertTime - startTime) / oneBillion;
                 logger.debug("aggregation time = " + aggregateTime + " seconds. Input records ~" + numberOfInputRecords);
-                logger.debug("insert time = " + insertTime + " seconds. OutputRecords = " + numberOfOutputRecords);
+                logger.debug("insert time = " + insertTime + " seconds. Output records = " + numberOfOutputRecords);
                 logger.debug("common time = " + allTime + " seconds");
             }
         } catch (InterruptedException e) {
@@ -73,12 +71,13 @@ public class AggregationTask implements Runnable {
 
     private int writeResult(AggregationOutput result) {
         List<DBObject> dbObjectList = new ArrayList<DBObject>();
-        this.absoluteCollection.drop();
+        this.tempCollection.drop();
         for (DBObject dbo : result.results()) {
             dbObjectList.add(dbo);
             //this.absoluteCollection.save(dbo, WriteConcern.SAFE);
         }
-        this.absoluteCollection.insert(dbObjectList, WriteConcern.SAFE);
+        this.tempCollection.insert(dbObjectList, WriteConcern.SAFE);
+        this.tempCollection.rename(this.absoluteCollectionName, true);
         return dbObjectList.size();
     }
 }

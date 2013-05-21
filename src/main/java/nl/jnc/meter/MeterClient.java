@@ -27,6 +27,7 @@ public class MeterClient implements Runnable {
 
     @Override
     public void run() {
+        long startClientTime = System.nanoTime();
         long max = Long.MIN_VALUE;
         long min = Long.MAX_VALUE;
         String msg = "client with device id=%s started";
@@ -48,8 +49,11 @@ public class MeterClient implements Runnable {
             }
 
         }
-        msg = "client with device id=%s stopped. Max insert time=%s nano seconds. Min insert time=%s nano seconds";
-        logger.debug(String.format(msg, deviceId, max, min));
+        long endClientTime = System.nanoTime();
+        msg = "client with device id=%s stopped. Max insert time=%s nano seconds. Min insert time=%s nano seconds." +
+                "Running client time: %s nano seconds";
+        logger.debug(String.format(msg, deviceId, max, min, endClientTime - startClientTime));
+
 
     }
 

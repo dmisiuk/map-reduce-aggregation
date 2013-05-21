@@ -11,13 +11,13 @@ import java.net.UnknownHostException;
 public class TestApp {
 
     private static Logger logger = Logger.getLogger(TestApp.class);
-    private static int numberOfClients = 2000;
-    private static int numberOfRequests = 2000;
+    private static int numberOfClients = 4000;
+    private static int numberOfRequests = 250;
     private static String dbName = "electricmeter";
     private static String relativeCollectionName = "relativeIndications";
     private static String absoluteCollectionName = "absoluteIndications";
-    private static long absoluteCalculatePeriod = 2000l;
-    private static long clientSleepMills = 100l;
+    private static long absoluteCalculatePeriod = 1500l;
+    private static long clientSleepMills = 20l;
     private static AppConfig appConfig;
 
     static {

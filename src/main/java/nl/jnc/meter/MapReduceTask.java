@@ -63,7 +63,9 @@ public class MapReduceTask implements Runnable {
                 long endMapReduceTime = System.nanoTime();
                 double mapReduceTime = (endMapReduceTime - startTime) / oneBillion;
                 logger.debug("Map-Reduce time = " + mapReduceTime + " seconds");
-                logger.debug(mapReduceOutput.getCommandResult().get("counts"));
+                DBObject counts = (DBObject) mapReduceOutput.getCommandResult().get("counts");
+                logger.debug("Input records = " + counts.get("input"));
+                logger.debug("Output records = " + counts.get("output"));
             }
         } catch (InterruptedException e) {
             logger.error(e);
