@@ -1,5 +1,6 @@
 package nl.jnc.meter;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
@@ -7,6 +8,7 @@ import com.mongodb.MapReduceCommand;
 import com.mongodb.MapReduceOutput;
 import com.mongodb.MongoClient;
 import org.apache.log4j.Logger;
+import org.bson.types.ObjectId;
 
 import java.net.UnknownHostException;
 
@@ -28,7 +30,6 @@ public class MapReduceTask implements Runnable {
     private DBCollection relativeCollection;
     private String absoluteCollectionName = "absolute_map_reduce";
     private String mapFunc, reduceFunc;
-    private final MapReduceCommand mpCommand;
 
     public MapReduceTask(AppConfig appConfig) throws UnknownHostException {
         this.appConfig = appConfig;
@@ -46,13 +47,7 @@ public class MapReduceTask implements Runnable {
                 "var r= {ts: d, value: sum};" +
                 " return r;" +
                 "}";
-        this.mpCommand = new MapReduceCommand(
-                relativeCollection,
-                mapFunc,
-                reduceFunc,
-                absoluteCollectionName,
-                MapReduceCommand.OutputType.REPLACE, null
-        );
+
     }
 
     @Override
@@ -62,6 +57,16 @@ public class MapReduceTask implements Runnable {
             while (true) {
                 Thread.sleep(appConfig.getAbsoluteCalculatePeriodMills());
                 logger.debug("start Map-Reduce...");
+                ObjectId breakPointOid = new ObjectId();
+                DBObject ltQuery = new BasicDBObject("_id", new BasicDBObject("$lt", breakPointOid));
+                MapReduceCommand mpCommand = new MapReduceCommand(
+                        relativeCollection,
+                        mapFunc,
+                        reduceFunc,
+                        absoluteCollectionName,
+                        MapReduceCommand.OutputType.REPLACE,
+                        ltQuery
+                );
                 long startTime = System.nanoTime();
                 MapReduceOutput mapReduceOutput = relativeCollection.mapReduce(mpCommand);
                 long endMapReduceTime = System.nanoTime();

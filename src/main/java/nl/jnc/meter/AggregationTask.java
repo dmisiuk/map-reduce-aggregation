@@ -8,6 +8,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.WriteConcern;
 import org.apache.log4j.Logger;
+import org.bson.types.ObjectId;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -45,10 +46,13 @@ public class AggregationTask implements Runnable {
         try {
             while (true) {
                 Thread.sleep(appConfig.getAbsoluteCalculatePeriodMills());
-                long numberOfInputRecords = this.relativeCollection.count();
+                ObjectId breakPointOid = new ObjectId();
+                DBObject ltQuery = new BasicDBObject("_id", new BasicDBObject("$lt", breakPointOid));
+                DBObject matchOp = new BasicDBObject("$match", ltQuery);
+                long numberOfInputRecords = this.relativeCollection.count(ltQuery);
                 logger.debug("start aggregation...");
                 long startTime = System.nanoTime();
-                AggregationOutput result = this.aggregate();
+                AggregationOutput result = this.aggregate(matchOp);
 
                 long endAggregateTime = System.nanoTime();
 
@@ -57,7 +61,7 @@ public class AggregationTask implements Runnable {
                 double aggregateTime = (endAggregateTime - startTime) / oneBillion;
                 double insertTime = (endInsertTime - endAggregateTime) / oneBillion;
                 double allTime = (endInsertTime - startTime) / oneBillion;
-                logger.debug("aggregation time = " + aggregateTime + " seconds. Input records ~" + numberOfInputRecords);
+                logger.debug("aggregation time = " + aggregateTime + " seconds. Input records =" + numberOfInputRecords);
                 logger.debug("insert time = " + insertTime + " seconds. Output records = " + numberOfOutputRecords);
                 logger.debug("common time = " + allTime + " seconds");
             }
@@ -66,8 +70,8 @@ public class AggregationTask implements Runnable {
         }
     }
 
-    private AggregationOutput aggregate() {
-        return this.relativeCollection.aggregate(groupOp);
+    private AggregationOutput aggregate(DBObject matchOp) {
+        return this.relativeCollection.aggregate(matchOp, groupOp);
     }
 
     private int writeResult(AggregationOutput result) {

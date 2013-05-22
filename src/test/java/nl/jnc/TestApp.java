@@ -16,7 +16,7 @@ public class TestApp {
     private static String dbName = "electricmeter";
     private static String relativeCollectionName = "relativeIndications";
     private static String absoluteCollectionName = "absoluteIndications";
-    private static long absoluteCalculatePeriod = 15000l;
+    private static long absoluteCalculatePeriod = 5000l;
     private static long clientSleepMills = 50l;
     private static AppConfig appConfig;
 
@@ -59,7 +59,7 @@ public class TestApp {
     public void test() throws UnknownHostException {
         logger.debug("starting test...");
         this.startMeterClients();
-        this.startAggregationTask();
-        //this.startMapReduceTask();
+        //this.startAggregationTask();
+        this.startMapReduceTask();
     }
 }
