@@ -1,13 +1,11 @@
 package nl.jnc.meter;
 
-import com.mongodb.AggregationOutput;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MapReduceCommand;
 import com.mongodb.MapReduceOutput;
 import com.mongodb.MongoClient;
-import com.mongodb.WriteConcern;
 import org.apache.log4j.Logger;
 
 import java.net.UnknownHostException;
@@ -15,13 +13,10 @@ import java.net.UnknownHostException;
 // mongo query for aggregation
 
 /**
- * var mapFunc = function() {
- * emit(this.deviceId, this.delta);
- * };
+ * var mapFunc = function () { emit(this.deviceId, {ts: this.ts, value: this.delta});}
  * <p/>
- * var reduceFunc = function(deviceId, deltas){
- * return Array.sum(deltas);
- * };
+ * var reduceFunc =  function (deviceId, values){ var sum = 0; var maxDate; values.forEach(function(v){ sum += v.value; maxDate = maxDate? Math.max(maxDate, v.ts):v.ts;}); var d = new ISODate(); d.setTime(maxDate);var r= {ts: d, value: sum}; return r;}
+ * <p/>
  * <p/>
  * db.relativeIndications.mapReduce(mapFunc, reduceFunc, {out: "absolute_map_reduce"});
  */
@@ -40,8 +35,17 @@ public class MapReduceTask implements Runnable {
         MongoClient mongoClient = new MongoClient();
         DB db = mongoClient.getDB(appConfig.getDbName());
         this.relativeCollection = db.getCollection(appConfig.getRelativeCollectionName());
-        this.mapFunc = "function() { emit(this.deviceId, this.delta);}";
-        this.reduceFunc = "function(deviceId, deltas){ return Array.sum(deltas);}";
+        this.mapFunc = "function () { emit(this.deviceId, {ts: this.ts, value: this.delta});}";
+        this.reduceFunc = "function (deviceId, values){" +
+                " var sum = 0; var maxDate;" +
+                " values.forEach(function(v){" +
+                " sum += v.value; maxDate = maxDate? Math.max(maxDate, v.ts):v.ts;" +
+                "});" +
+                " var d = new ISODate();" +
+                " d.setTime(maxDate);" +
+                "var r= {ts: d, value: sum};" +
+                " return r;" +
+                "}";
         this.mpCommand = new MapReduceCommand(
                 relativeCollection,
                 mapFunc,

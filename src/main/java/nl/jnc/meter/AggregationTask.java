@@ -35,6 +35,7 @@ public class AggregationTask implements Runnable {
         this.groupOp = new BasicDBObject("$group",
                 new BasicDBObject("_id", "$" + MeterData.DEVICE_ID_KEY)
                         .append(ABSOLUTE_VALUE_KEY, new BasicDBObject("$sum", "$" + MeterData.DELTA_KEY))
+                        .append(MeterData.TIME_STAMP_KEY, new BasicDBObject("$max", "$" + MeterData.TIME_STAMP_KEY))
         );
     }
 
